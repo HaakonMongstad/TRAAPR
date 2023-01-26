@@ -12,15 +12,7 @@ import abc
 from numpy.typing import NDArray
 
 
-### COLAB PLOTTING METHODS ###
 fig = plt.figure(figsize=(6,6))
-
-#generate a fake game with walls and agents
-walls = np.random.binomial(1, 0.2, (10,10))
-test_map = [np.random.randint(0,4, (10,10)) for i in range(10)]
-for i in test_map:
-  i[i==1] = 0
-  i[walls== 1] = 1
 
 
 def frame(w, args):
@@ -44,8 +36,6 @@ def anim_builder(frames):
   anim = animation.FuncAnimation(fig, frame, frames=frames, fargs = [ax], blit=True, repeat=True)
   plt.show()
   return anim
-
-anim_builder(test_map)
 
 
 ### DISPLAY HOW ATTACK COORDINATES WORK ###
