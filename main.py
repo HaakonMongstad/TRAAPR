@@ -42,6 +42,7 @@ def frame(w, args):
 def anim_builder(frames):
   ax = fig.add_subplot(111)
   anim = animation.FuncAnimation(fig, frame, frames=frames, fargs = [ax], blit=True, repeat=True)
+  plt.show()
   return anim
 
 anim_builder(test_map)
@@ -341,4 +342,3 @@ test_game = cgol(agent_1, agent_2,10,10)
 game_hist = test_game.run_game(30)
 
 anim_builder(game_hist)
-
