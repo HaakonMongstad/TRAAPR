@@ -10,7 +10,7 @@ from mpl_toolkits import mplot3d
 import matplotlib.animation as animation
 import abc
 from numpy.typing import NDArray
-
+import gym
 
 fig = plt.figure(figsize=(6,6))
 
@@ -321,7 +321,6 @@ class cgol:
 
 
 ### TEST GAME ###
-
 agent_1 = first_enemy_agent()
 agent_2 = dummy_agent()
 
