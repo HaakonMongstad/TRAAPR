@@ -10,7 +10,10 @@ from mpl_toolkits import mplot3d
 import matplotlib.animation as animation
 import abc
 from numpy.typing import NDArray
-import gym
+import gymnasium as gym
+from scipy import signal
+
+VISON_SIZE = 5
 
 fig = plt.figure(figsize=(6,6))
 
@@ -30,27 +33,13 @@ def frame(w, args):
       plot_list.append(ax.imshow(w, cmap = cmap, norm = norm))
     return plot_list
 
-#frames - list of map matrices [-1] enemy, [0] neurtal, [1] friendly
+#frames - list of map matrices [-1] enemy, [0] neutral, [1] friendly
 def anim_builder(frames):
   ax = fig.add_subplot(111)
   anim = animation.FuncAnimation(fig, frame, frames=frames, fargs = [ax], blit=True, repeat=True)
   plt.show()
   return anim
 
-
-### DISPLAY HOW ATTACK COORDINATES WORK ###
-#display of how attack cordinates work 
-x_view, y_view = np.indices((5,5))
-x_view-=2
-y_view-=2
-
-x_view = x_view.flatten()
-y_view = y_view.flatten()
-
-print(y_view)
-print(x_view)
-
-### AGENT SUPERCLASS, YOU DONT EDIT THIS!!!! ###
 class Agent():
   __metaclass__ = abc.ABCMeta
 
@@ -96,6 +85,25 @@ class dummy_agent(Agent):
 
     return attack_mat.astype(int)
 
+class ReinforcementLearningAgent(Agent):
+  
+  
+  def adjacent_cells(self, state_mat, x, y):
+    """
+    
+    """
+    w, h = state_mat.shape
+
+    rowIndices, colIndices = np.indices((VISON_SIZE, VISON_SIZE))
+    rowIndices = (rowIndices + x - (VISON_SIZE/2)) % h
+    colIndices = (colIndices + y - (VISON_SIZE/2)) % w
+
+    adj_cells = state_mat[rowIndices, colIndices]
+    return adj_cells
+
+  def policy(self, state_mat, **kwargs):
+    pass
+
 class first_enemy_agent(Agent):
 
   def simple_adj(self, feat_mat):
@@ -132,13 +140,6 @@ class first_enemy_agent(Agent):
         attack_mat[i,j] = self.simple_adj(self.get_cell_feats(state_mat, i,j,2)) #get cell feats returns adjacent cells
 
     return attack_mat.astype(int)
-
-
-
-
-### CGOL ###
-
-from scipy import signal
 
 
 class cgol:
@@ -295,6 +296,8 @@ class cgol:
     #####reward! modify as needed (your objective is to win)
 
     done = False
+    # print("HERE")
+    # print(reward)
     if np.min(self.state_mat) == 0:
       done = True
       #reward = 10000
@@ -315,7 +318,6 @@ class cgol:
   #returns a history of the game
   def run_game(self, n_steps = 10):
     state_mats = [self.step(return_state = True) for i in range(n_steps)]
-
     return state_mats
   
 
