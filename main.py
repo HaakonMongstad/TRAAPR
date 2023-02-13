@@ -1,4 +1,3 @@
-### SETUP ###
 from matplotlib import rc
 from matplotlib import colors
 rc('animation', html='jshtml')
@@ -8,11 +7,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 import matplotlib.animation as animation
-from numpy.typing import NDArray
 from scipy import signal
 
 import Agents
-import Learning
+#import Learning
 
 fig = plt.figure(figsize=(6,6))
 

@@ -75,7 +75,7 @@ class ReinforcementLearningAgent(Agent):
     return np.argwhere(feat_mat != 1) # Anywhere that is not a wall (1)
 
   def policy(self, state_mat, **kwargs):
-    return BoltzmannQPolicy()
+    pass
 
 class first_enemy_agent(Agent):
 
