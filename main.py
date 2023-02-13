@@ -17,6 +17,9 @@ import Learning
 fig = plt.figure(figsize=(6,6))
 
 
+FRIENDLY = 2
+ENEMY = 3
+
 def frame(w, args):
     ax = args
     ax.clear()
@@ -168,29 +171,40 @@ class cgol:
     self.state_mat[net_action<=-1] = 3
     self.state_mat[self.map==1]=1 #walls always equal 1
 
-    ### ADD PUNISHMENT FOR OVERPOPULATION #################################
-    abs_map = (self.state_mat==2)+(self.state_mat==3) #get locations where there is an agent
-    sum_mat = signal.convolve2d(abs_map, np.ones((3,3)), boundary = 'wrap', mode = 'same')
+    agent_mat = (self.state_mat==2)+(self.state_mat==3) #get locations where there is an agent
+    sum_mat = signal.convolve2d(agent_mat, np.ones((3,3)), boundary = 'wrap', mode = 'same')
     excess_mat = sum_mat>self.over_pop
     self.state_mat = self.state_mat * (1-(1*excess_mat))
-    ### ADD PUNISHMENT FOR OVERPOPULATION #################################
+    # TODO: Add overpopulation punishment
 
     self.state_mat[self.map==1]=1 #walls always equal 1
 
-    ### ADD TO STATE HISTROY ######################
+    # Add to state history
     self.state_history.append(self.state_mat.copy())
     self.p1_history.append(p1_action)
     self.p2_history.append(p2_action)
 
-
-    #####reward! modify as needed (your objective is to win)##############
-    reward_kernal = np.array([[0   , .25 ,.5 , .25,  0],
+    
+    agent_mat[agent_mat == ENEMY] = -1
+    agent_mat[agent_mat == FRIENDLY] = 1
+    # TODO: Update reward kernal
+    reward_kernal = np.array([
+                       [0   , .25 ,.5 , .25,  0],
                        [.25 , .5  ,.75, .5 ,.25],
                        [.5  , .75 , 1 , .75, .5],
                        [.25 , .5  ,.75, .5 ,.25],
-                       [0   , .25 ,.5 , .25,  0]])
+                       [0   , .25 ,.5 , .25,  0]
+    ])
     reward = signal.convolve2d(self.state_mat, reward_kernal, boundary = 'wrap', mode = 'same')
-    #####reward! modify as needed (your objective is to win)
+
+    """
+    [1,1,1,1,1
+    1,1,1,1,1,
+    1,,1,3,1,1
+    1,1,1,,1,1
+    1,1,,1,1,1]
+    
+    """
 
     done = False
     # print("HERE")
