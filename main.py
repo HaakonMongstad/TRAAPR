@@ -161,6 +161,9 @@ class cgol:
     p2_action = self.convert_action_map(p2_action, p2_cords)
 
     net_action = p1_action - p2_action #change in map from actions
+
+    # WHERE OUR MODEL STEP FUNCTION BEGINS
+
     p1_gain = net_action>=1 #player 1 gains
     p2_gain = net_action<=-1 #player 2 gains
 
@@ -187,6 +190,7 @@ class cgol:
     agent_mat[agent_mat == FRIENDLY] = 1
     agent_mat[agent_mat == ENEMY] = -1
     # TODO: Update reward kernal
+    """
     reward_kernal = np.array([
     [0   , .25 ,.5 , .25,  0],
     [.25 , .5  ,.75, .5 ,.25],
@@ -194,8 +198,19 @@ class cgol:
     [.25 , .5  ,.75, .5 ,.25],
     [0   , .25 ,.5 , .25,  0]
     ])
+    """
+    reward_kernal = np.array([
+    [.75, .75 ,.75 ,.75, .75],
+    [.75, .5,  .5 , .5,  .75],
+    [.75, .5 ,  1,  .5 , .75],
+    [.75, .5  ,.5 , .5 , .75],
+    [.75, .75, .75, .75, .75]
+    ])
+  
+
     reward = signal.convolve2d(agent_mat, reward_kernal, boundary = 'wrap', mode = 'same')
 
+    rewardSum = np.sum(reward)
     done = False
     # print("HERE")
     # print(reward)
