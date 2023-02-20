@@ -9,7 +9,6 @@ from tf_agents.environments import wrappers
 from tf_agents.environments import suite_gym
 from tf_agents.trajectories import time_step as ts
 from scipy import signal
-import abc
 
 FRIENDLY = 2
 ENEMY = 3
@@ -70,6 +69,7 @@ class GameEnv(py_environment.PyEnvironment):
         shape=(board_h,board_w), dtype=np.int32, minimum=0, maximum=3, name='board')
 
     self._episode_ended = False
+
 
   def action_spec(self):
     return self._action_spec
