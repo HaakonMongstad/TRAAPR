@@ -264,7 +264,7 @@ def main():
   
   agent_1 = Agents.first_enemy_agent()
   agent_2 = Agents.dummy_agent()
-  environment = GameEnvironment.GameEnv(agent_1=agent_1,agent_2=agent_2,maxCount=100)
+  environment = GameEnvironment.GameEnv(agent_1=agent_1,agent_2=agent_2)
   tf_env = tf_py_environment.TFPyEnvironment(environment)
   time_step = tf_env.reset()
   rewards = []
