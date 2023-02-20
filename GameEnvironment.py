@@ -76,6 +76,51 @@ class GameEnv(py_environment.PyEnvironment):
 
   def observation_spec(self):
     return self._observation_spec
+  
+  def get_state(self):
+    return self.state_mat
+
+  #translates individual cell action from int to cordinate
+  def translate_action(self, x_cord, y_cord, action_int):
+    action_x = self.x_view[action_int]
+    action_y = self.y_view[action_int]
+
+    x_add = (x_cord + action_x)%self.board_h
+    y_add = (y_cord + action_y)%self.board_w
+
+    return np.array([x_add,y_add])
+
+
+  #moves from cords to attack to attack_map
+  #action_map - map of board with actions assigned integer based on coord
+  #ex:
+  # [1 3 4 5 0 9]      [sum of adjent attacks]
+  # [3 4 9 8 6 2]      [                     ]
+  # [1 0 6 7 5 3] ---> [                     ]
+  # [0 0 0 4 5 6]      [                     ]
+  def convert_action_map(self, action_map, self_cords):
+    
+    x_cord = self_cords[0]
+    y_cord = self_cords[1]
+
+    if len(y_cord) > 0: #check agent has at least one element
+      action_list = [action_map[x_cord[i],y_cord[i]] for i in range(len(x_cord))]
+      action_cords = np.stack([self.translate_action(x_cord[i], y_cord[i], action_list[i]) for i in range(len(action_list))])
+
+    else: #case where there are no more agents on the field
+      return np.zeros((self.board_h, self.board_w))
+
+    action_count = np.zeros((self.board_h, self.board_w))
+    action_count[action_cords[:,0], action_cords[:,1]]+=1
+    return action_count
+
+  #allys are always 2, so modify it here. 
+  def modify_view(self, state_mat, agent_num = 2):
+    view = state_mat.copy()
+
+    view[state_mat==agent_num] = 2
+    view[state_mat==2] = agent_num
+    return view
 
   def getAction(self):
 
@@ -100,6 +145,8 @@ class GameEnv(py_environment.PyEnvironment):
 
     net_action = p1_action - p2_action #change in map from actions
 
+    net_action[net_action>0] = 1
+    net_action[net_action<0] = -1
     return net_action
 
   def step(self,action):
@@ -166,16 +213,16 @@ class GameEnv(py_environment.PyEnvironment):
     self.count+=1
     # print("HERE")
     # print(reward)
-    if np.min(self.agent_mat) == 0:
+    if np.min(agent_mat) == 0:
       self.count = self.maxCount
       done = True
       reward += 10000
-      return ts.termination(np.array([self._state],dtype=np.int32),reward, 1)
-    elif np.max(self.agent_mat) == 0:
+      return ts.termination(np.array([self.state_mat],dtype=np.int32),reward, 1)
+    elif np.max(agent_mat) == 0:
       self.count = self.maxCount
       done = True
       reward += -10000
-      return ts.termination(np.array([self._state],dtype=np.int32),reward, 1)
+      return ts.termination(np.array([self.state_mat],dtype=np.int32),reward, 1)
     elif self.count >= self.maxCount:
       done = True
       count2 = self.state_mat.bincount(2)
@@ -184,9 +231,9 @@ class GameEnv(py_environment.PyEnvironment):
         reward += 5000
       elif (count3 > count2):
         reward -= 5000
-      return ts.termination(np.array([self._state],dtype=np.int32),reward, 1)
+      return ts.termination(np.array([self.state_mat],dtype=np.int32),reward, 1)
 
-    return ts.transition(np.array([self._state],dtype=np.int32),reward, 1)
+    return ts.transition(np.array([self.state_mat],dtype=np.int32),reward, 1)
     
     # if return_state:
     #   return self.state_mat.copy()
@@ -195,7 +242,7 @@ class GameEnv(py_environment.PyEnvironment):
 
   def _reset(self):
     self = GameEnv(self.agent_1,self.agent_2,self.board_h,self.board_w,self.attack_width,self.map,self.maxCount)
-    return ts.restart(np.array([self._state], dtype=np.int32))
+    return ts.restart(np.array([self.state_mat], dtype=np.int32))
 
 
   # class notAbstractGameEnv():

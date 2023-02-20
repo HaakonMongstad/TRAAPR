@@ -276,6 +276,7 @@ def main():
     tf_env.reset()
     while True:
       action = environment.getAction()
+      environment.step(action)
       next_time_step = tf_env.step(action)
       if tf_env.current_time_step().is_last():
         break
