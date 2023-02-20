@@ -1,31 +1,26 @@
-import tensorflow as tf
+#import tensorflow as tf
 import numpy as np
 from tf_agents.environments import py_environment
-from tf_agents.environments import tf_environment
-from tf_agents.environments import tf_py_environment
-from tf_agents.environments import utils
+# from tf_agents.environments import tf_environment
+# from tf_agents.environments import tf_py_environment
+# from tf_agents.environments import utils
 from tf_agents.specs import array_spec
-from tf_agents.environments import wrappers
-from tf_agents.environments import suite_gym
+# from tf_agents.environments import wrappers
+# from tf_agents.environments import suite_gym
 from tf_agents.trajectories import time_step as ts
 from scipy import signal
+import abc
 
 FRIENDLY = 2
 ENEMY = 3
-
-
-
-
-
 
 class GameEnv(py_environment.PyEnvironment):
   def __init__(self, agent_1, agent_2, board_h=10, board_w=10, attack_width = 5, map = None, maxCount = 100):
     self.board_h = board_h
     self.board_w = board_w
-    self.view_width = attack_width
-    self.view_height = attack_width
+    self.view_w = attack_width
+    self.view_h = attack_width
     self.maxCount = maxCount
-    self.attack_width = attack_width
 
     if map is None:
       self.map = np.zeros((self.board_h,self.board_w))
@@ -241,7 +236,7 @@ class GameEnv(py_environment.PyEnvironment):
 
 
   def _reset(self):
-    self = GameEnv(self.agent_1,self.agent_2,self.board_h,self.board_w,self.attack_width,self.map,self.maxCount)
+    self = GameEnv(self.agent_1,self.agent_2,self.board_h,self.board_w,self.view_w,self.map,self.maxCount)
     return ts.restart(np.array([self.state_mat], dtype=np.int32))
 
 
