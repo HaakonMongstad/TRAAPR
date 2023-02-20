@@ -26,6 +26,7 @@ class GameEnv(py_environment.PyEnvironment):
     self.view_width = attack_width
     self.view_height = attack_width
     self.maxCount = maxCount
+    self.attack_width = attack_width
 
     if map is None:
       self.map = np.zeros((self.board_h,self.board_w))
@@ -107,7 +108,7 @@ class GameEnv(py_environment.PyEnvironment):
   def reset(self):
     return self._reset()
 
-  @abc.abstractmethod
+
   def _step(self,action):
     
     if self._episode_ended == True:
@@ -191,9 +192,9 @@ class GameEnv(py_environment.PyEnvironment):
     #   return self.state_mat.copy()
 
 
-  @abc.abstractmethod
-  def _reset():
-    self = GameEnv(self.agent_1,self.agent_2,self.board_h,self.board_2,self.attack_width,self.map,self.maxCount)
+
+  def _reset(self):
+    self = GameEnv(self.agent_1,self.agent_2,self.board_h,self.board_w,self.attack_width,self.map,self.maxCount)
     return ts.restart(np.array([self._state], dtype=np.int32))
 
 
