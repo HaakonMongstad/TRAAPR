@@ -14,6 +14,11 @@ import abc
 FRIENDLY = 2
 ENEMY = 3
 
+
+
+
+
+
 class GameEnv(py_environment.PyEnvironment):
   def __init__(self, agent_1, agent_2, board_h=10, board_w=10, attack_width = 5, map = None, maxCount = 100):
     self.board_h = board_h
@@ -65,13 +70,13 @@ class GameEnv(py_environment.PyEnvironment):
 
     self._episode_ended = False
 
-def action_spec(self):
+  def action_spec(self):
     return self._action_spec
 
-def observation_spec(self):
+  def observation_spec(self):
     return self._observation_spec
 
-def getAction(self):
+  def getAction(self):
 
     p1_view = self.modify_view(self.state_mat, 2) #player 1 shows up as 2
     p2_view = self.modify_view(self.state_mat, 3) #player 2 shows up as 3
@@ -96,17 +101,18 @@ def getAction(self):
 
     return net_action
 
-def step(self,action):
-  return self._step(action)
+  def step(self,action):
+    return self._step(action)
 
-def reset(self):
-  return step._reset()
+  def reset(self):
+    return self._reset()
 
-@abc.abstractmethod
-def _step(self,action):
+  @abc.abstractmethod
+  def _step(self,action):
     
     if self._episode_ended == True:
         return self._reset()
+     
 
     p1_gain = action>=1 #player 1 gains
     p2_gain = action<=-1 #player 2 gains
@@ -185,10 +191,16 @@ def _step(self,action):
     #   return self.state_mat.copy()
 
 
-@abc.abstractmethod
-def _reset():
+  @abc.abstractmethod
+  def _reset():
     self = GameEnv(self.agent_1,self.agent_2,self.board_h,self.board_2,self.attack_width,self.map,self.maxCount)
     return ts.restart(np.array([self._state], dtype=np.int32))
 
 
-
+  # class notAbstractGameEnv():
+  #   def step(self,action):
+  #     return self._step(action)
+  #   def reset(self):
+  #     return self._reset()
+  #   def getAction(self):
+  #     return self._getAction
