@@ -262,24 +262,28 @@ def main():
   rewards = []
   steps = []
   episodes = 1000
-  action = environment.getAction()
-  rewards.append(environment.step(action).reward)
-  print(tf_env.step(action))
+  # for i in range(10):
+  #   action = environment.getAction()
+  #   time_step = environment.step(action)
 
-  # for _ in range(episodes):
-  #   reward_t = 0
-  #   steps_t = 0
-  #   tf_env.reset()
-  #   while True:
-  #     action = environment.getAction()
-  #     environment.step(action)
-  #     next_time_step = tf_env.step(action)
-  #     if tf_env.current_time_step().is_last():
-  #       break
-  #     episode_steps += 1
-  #     episode_reward += next_time_step.reward.numpy()
-  #   rewards.append(episode_reward)
-  #   steps.append(episode_steps)
+
+
+  
+
+  for _ in range(episodes):
+    reward_t = 0
+    steps_t = 0
+    tf_env.reset()
+    while True:
+      action = environment.getAction()
+      environment.step(action)
+      next_time_step = tf_env.step(action)
+      if tf_env.current_time_step().is_last():
+        break
+      episode_steps += 1
+      episode_reward += next_time_step.reward.numpy()
+    rewards.append(episode_reward)
+    steps.append(episode_steps)
   
   print(rewards)
 
