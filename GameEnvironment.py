@@ -40,14 +40,14 @@ class GameEnv(py_environment.PyEnvironment):
     else:
       self.map = map
 
-    self.state_mat = np.zeros((self.board_h,self.board_w)) + self.map
+    self._state = np.zeros((self.board_h,self.board_w)) + self.map
 
     self.agent_1 = agent_1
     self.agent_2 = agent_2
 
     #set starting locations for agent
-    self.state_mat[2, 2] = 2
-    self.state_mat[5, 5] = 3
+    self._state[2, 2] = 2
+    self._state[5, 5] = 3
     
     #mapping for action int to coordinate 
     x_view, y_view = np.indices((5,5))
@@ -64,7 +64,7 @@ class GameEnv(py_environment.PyEnvironment):
   
   def _reset(self):
     self = GameEnv(self.agent_1,self.agent_2,self.board_h,self.board_w,self.view_w,self.map,self.maxCount)
-    return ts.restart(np.array([self.state_mat], dtype=np.int32))
+    return ts.restart(np.array([self._state], dtype=np.int32))
   
   def _step(self,action):
     
@@ -76,22 +76,22 @@ class GameEnv(py_environment.PyEnvironment):
     p2_gain = action<=-1 #player 2 gains
 
     #update game state
-    self.state_mat[action>=1] = 2
-    self.state_mat[action<=-1] = 3
-    self.state_mat[self.map==1]=1 #walls always equal 1
+    self._state[action>=1] = 2
+    self._state[action<=-1] = 3
+    self._state[self.map==1]=1 #walls always equal 1
 
-    abs_map = (self.state_mat==2)+(self.state_mat==3) #get locations where there is an agent
+    abs_map = (self._state==2)+(self._state==3) #get locations where there is an agent
     sum_mat = signal.convolve2d(abs_map, np.ones((3,3)), boundary = 'wrap', mode = 'same')
     excess_mat = sum_mat>self.over_pop
-    self.state_mat = self.state_mat * (1-(1*excess_mat))
+    self._state = self._state * (1-(1*excess_mat))
     # TODO: Add overpopulation punishment
 
-    self.state_mat[self.map==1]=1 #walls always equal 1
+    self._state[self.map==1]=1 #walls always equal 1
 
     # Add to state history
-    self.state_history.append(self.state_mat.copy())
+#    self.state_history.append(self.state_mat.copy())
 
-    agent_mat = self.state_mat.copy()
+    agent_mat = self._state.copy()
     agent_mat[agent_mat == 1] = 0
     agent_mat[agent_mat == FRIENDLY] = 1
     agent_mat[agent_mat == ENEMY] = -1
@@ -117,27 +117,27 @@ class GameEnv(py_environment.PyEnvironment):
       self.count = self.maxCount
       done = True
       reward += 10000
-      return ts.termination(np.array([self.state_mat],dtype=np.int32),reward, 1)
+      return ts.termination(np.array([self._state],dtype=np.int32),reward, 1)
     elif np.max(agent_mat) == 0:
       self.count = self.maxCount
       done = True
       reward += -10000
-      return ts.termination(np.array([self.state_mat],dtype=np.int32),reward, 1)
+      return ts.termination(np.array([self._state],dtype=np.int32),reward, 1)
     elif self.count >= self.maxCount:
       done = True
-      count2 = self.state_mat.bincount(2)
-      count3 = self.state_mat.bincount(3)
+      count2 = self._state.bincount(2)
+      count3 = self._state.bincount(3)
       if (count2 > count3):
         reward += 5000
       elif (count3 > count2):
         reward -= 5000
-      return ts.termination(np.array([self.state_mat],dtype=np.int32),reward, 1)
+      return ts.termination(np.array([self._state],dtype=np.int32),reward, 1)
 
-    return ts.transition(np.array([self.state_mat],dtype=np.int32),reward, 1)
+    return ts.transition(np.array([self._state],dtype=np.int32),reward, 1)
   
   
   def get_state(self):
-    return self.state_mat
+    return self._state
   
   #translates individual cell action from int to cordinate
   def translate_action(self, x_cord, y_cord, action_int):
@@ -175,8 +175,8 @@ class GameEnv(py_environment.PyEnvironment):
 
   def getAction(self):
 
-    p1_view = self.modify_view(self.state_mat, 2) #player 1 shows up as 2
-    p2_view = self.modify_view(self.state_mat, 3) #player 2 shows up as 3
+    p1_view = self.modify_view(self._state, 2) #player 1 shows up as 2
+    p2_view = self.modify_view(self._state, 3) #player 2 shows up as 3
 
     #retrieve agent 1 actions
     
