@@ -16,27 +16,37 @@ ENEMY = 3
 
 class GameEnv(py_environment.PyEnvironment):
   def __init__(self, agent_1, agent_2, board_h=10, board_w=10, attack_width = 5, map = None, maxCount = 100):
+    # Game variables
     self.board_h = board_h
     self.board_w = board_w
     self.view_w = attack_width
     self.view_h = attack_width
     self.maxCount = maxCount
+    self.count = 0    
+    self.over_pop = 6
 
+    # Environment variables
+    self._action_spec = array_spec.BoundedArraySpec(
+        shape=(board_h,board_w), dtype=np.int32, minimum=-1, maximum=1, name='play')
+
+    self._observation_spec = array_spec.BoundedArraySpec(
+        shape=(board_h,board_w), dtype=np.int32, minimum=0, maximum=3, name='board')
+
+    self._episode_ended = False
+
+
+    # Initializing map & state_mat
     if map is None:
       self.map = np.zeros((self.board_h,self.board_w))
     else:
       self.map = map
-
-    self.over_pop =6
 
     self.state_mat = np.zeros((self.board_h,self.board_w)) + self.map
 
     self.agent_1 = agent_1
     self.agent_2 = agent_2
 
-    start_num = 1
     #set starting locations for agent
-
     self.state_mat[2, 2] = 2
     self.state_mat[5, 5] = 3
     
@@ -46,34 +56,90 @@ class GameEnv(py_environment.PyEnvironment):
     y_view-=2
     self.x_view = x_view.flatten()
     self.y_view = y_view.flatten()
-
-    #recording history
-    self.state_history = []
-    self.p1_history = []
-    self.p2_history = []
-    self.reward = []
-    self.count = 0
-
-    self.state_history.append(self.state_mat) 
     
-    
-    self._action_spec = array_spec.BoundedArraySpec(
-        shape=(board_h,board_w), dtype=np.int32, minimum=-1, maximum=1, name='play')
-
-    self._observation_spec = array_spec.BoundedArraySpec(
-        shape=(board_h,board_w), dtype=np.int32, minimum=0, maximum=3, name='board')
-
-    self._episode_ended = False
-
-  def action_spec(self):
-    return self._action_spec
-
   def observation_spec(self):
     return self._observation_spec
   
+  def action_spec(self):
+    return self._action_spec
+  
+  def _reset(self):
+    self = GameEnv(self.agent_1,self.agent_2,self.board_h,self.board_w,self.view_w,self.map,self.maxCount)
+    return ts.restart(np.array([self.state_mat], dtype=np.int32))
+  
+  def _step(self,action):
+    
+    if self._episode_ended == True:
+        return self._reset()
+     
+
+    p1_gain = action>=1 #player 1 gains
+    p2_gain = action<=-1 #player 2 gains
+
+    #update game state
+    self.state_mat[action>=1] = 2
+    self.state_mat[action<=-1] = 3
+    self.state_mat[self.map==1]=1 #walls always equal 1
+
+    abs_map = (self.state_mat==2)+(self.state_mat==3) #get locations where there is an agent
+    sum_mat = signal.convolve2d(abs_map, np.ones((3,3)), boundary = 'wrap', mode = 'same')
+    excess_mat = sum_mat>self.over_pop
+    self.state_mat = self.state_mat * (1-(1*excess_mat))
+    # TODO: Add overpopulation punishment
+
+    self.state_mat[self.map==1]=1 #walls always equal 1
+
+    # Add to state history
+    self.state_history.append(self.state_mat.copy())
+
+    agent_mat = self.state_mat.copy()
+    agent_mat[agent_mat == 1] = 0
+    agent_mat[agent_mat == FRIENDLY] = 1
+    agent_mat[agent_mat == ENEMY] = -1
+
+
+    reward_kernal = np.array([
+    [.75, .75 ,.75 ,.75, .75],
+    [.75, .5,  .5 , .5,  .75],
+    [.75, .5 ,  1,  .5 , .75],
+    [.75, .5  ,.5 , .5 , .75],
+    [.75, .75, .75, .75, .75]
+    ])
+  
+
+    rewardMatrix = signal.convolve2d(agent_mat, reward_kernal, boundary = 'wrap', mode = 'same')
+
+    reward = np.sum(rewardMatrix)
+    done = False
+    self.count+=1
+    # print("HERE")
+    # print(reward)
+    if np.min(agent_mat) == 0:
+      self.count = self.maxCount
+      done = True
+      reward += 10000
+      return ts.termination(np.array([self.state_mat],dtype=np.int32),reward, 1)
+    elif np.max(agent_mat) == 0:
+      self.count = self.maxCount
+      done = True
+      reward += -10000
+      return ts.termination(np.array([self.state_mat],dtype=np.int32),reward, 1)
+    elif self.count >= self.maxCount:
+      done = True
+      count2 = self.state_mat.bincount(2)
+      count3 = self.state_mat.bincount(3)
+      if (count2 > count3):
+        reward += 5000
+      elif (count3 > count2):
+        reward -= 5000
+      return ts.termination(np.array([self.state_mat],dtype=np.int32),reward, 1)
+
+    return ts.transition(np.array([self.state_mat],dtype=np.int32),reward, 1)
+  
+  
   def get_state(self):
     return self.state_mat
-
+  
   #translates individual cell action from int to cordinate
   def translate_action(self, x_cord, y_cord, action_int):
     action_x = self.x_view[action_int]
@@ -84,14 +150,6 @@ class GameEnv(py_environment.PyEnvironment):
 
     return np.array([x_add,y_add])
 
-
-  #moves from cords to attack to attack_map
-  #action_map - map of board with actions assigned integer based on coord
-  #ex:
-  # [1 3 4 5 0 9]      [sum of adjent attacks]
-  # [3 4 9 8 6 2]      [                     ]
-  # [1 0 6 7 5 3] ---> [                     ]
-  # [0 0 0 4 5 6]      [                     ]
   def convert_action_map(self, action_map, self_cords):
     
     x_cord = self_cords[0]
@@ -142,107 +200,3 @@ class GameEnv(py_environment.PyEnvironment):
     net_action[net_action>0] = 1
     net_action[net_action<0] = -1
     return net_action
-
-  def step(self,action):
-    return self._step(action)
-
-  def reset(self):
-    return self._reset()
-
-
-  def _step(self,action):
-    
-    if self._episode_ended == True:
-        return self._reset()
-     
-
-    p1_gain = action>=1 #player 1 gains
-    p2_gain = action<=-1 #player 2 gains
-
-    #update game state
-    self.state_mat[action>=1] = 2
-    self.state_mat[action<=-1] = 3
-    self.state_mat[self.map==1]=1 #walls always equal 1
-
-    abs_map = (self.state_mat==2)+(self.state_mat==3) #get locations where there is an agent
-    sum_mat = signal.convolve2d(abs_map, np.ones((3,3)), boundary = 'wrap', mode = 'same')
-    excess_mat = sum_mat>self.over_pop
-    self.state_mat = self.state_mat * (1-(1*excess_mat))
-    # TODO: Add overpopulation punishment
-
-    self.state_mat[self.map==1]=1 #walls always equal 1
-
-    # Add to state history
-    self.state_history.append(self.state_mat.copy())
-    # self.p1_history.append(p1_action)
-    # self.p2_history.append(p2_action)
-
-    agent_mat = self.state_mat.copy()
-    agent_mat[agent_mat == 1] = 0
-    agent_mat[agent_mat == FRIENDLY] = 1
-    agent_mat[agent_mat == ENEMY] = -1
-    # TODO: Update reward kernal
-    """
-    reward_kernal = np.array([
-    [0   , .25 ,.5 , .25,  0],
-    [.25 , .5  ,.75, .5 ,.25],
-    [.5  , .75 , 1 , .75, .5],
-    [.25 , .5  ,.75, .5 ,.25],
-    [0   , .25 ,.5 , .25,  0]
-    ])
-    """
-    reward_kernal = np.array([
-    [.75, .75 ,.75 ,.75, .75],
-    [.75, .5,  .5 , .5,  .75],
-    [.75, .5 ,  1,  .5 , .75],
-    [.75, .5  ,.5 , .5 , .75],
-    [.75, .75, .75, .75, .75]
-    ])
-  
-
-    rewardMatrix = signal.convolve2d(agent_mat, reward_kernal, boundary = 'wrap', mode = 'same')
-
-    reward = np.sum(rewardMatrix)
-    done = False
-    self.count+=1
-    # print("HERE")
-    # print(reward)
-    if np.min(agent_mat) == 0:
-      self.count = self.maxCount
-      done = True
-      reward += 10000
-      return ts.termination(np.array([self.state_mat],dtype=np.int32),reward, 1)
-    elif np.max(agent_mat) == 0:
-      self.count = self.maxCount
-      done = True
-      reward += -10000
-      return ts.termination(np.array([self.state_mat],dtype=np.int32),reward, 1)
-    elif self.count >= self.maxCount:
-      done = True
-      count2 = self.state_mat.bincount(2)
-      count3 = self.state_mat.bincount(3)
-      if (count2 > count3):
-        reward += 5000
-      elif (count3 > count2):
-        reward -= 5000
-      return ts.termination(np.array([self.state_mat],dtype=np.int32),reward, 1)
-
-    return ts.transition(np.array([self.state_mat],dtype=np.int32),reward, 1)
-    
-    # if return_state:
-    #   return self.state_mat.copy()
-
-
-
-  def _reset(self):
-    self = GameEnv(self.agent_1,self.agent_2,self.board_h,self.board_w,self.view_w,self.map,self.maxCount)
-    return ts.restart(np.array([self.state_mat], dtype=np.int32))
-
-
-  # class notAbstractGameEnv():
-  #   def step(self,action):
-  #     return self._step(action)
-  #   def reset(self):
-  #     return self._reset()
-  #   def getAction(self):
-  #     return self._getAction

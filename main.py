@@ -246,27 +246,19 @@ class cgol:
     state_mats = [self.step(return_state = True) for i in range(n_steps)]
     return state_mats
   
-
-
-#def train_model(model):
   
 
 
 def main():
 
-
-  # model = Learning.get_model()
-  # model.summary()
-  # Learning.build_agent(model)
-  
-
-
-  
   agent_1 = Agents.first_enemy_agent()
   agent_2 = Agents.dummy_agent()
+
   environment = GameEnvironment.GameEnv(agent_1=agent_1,agent_2=agent_2)
   tf_env = tf_py_environment.TFPyEnvironment(environment)
   time_step = tf_env.reset()
+
+  # History
   rewards = []
   steps = []
   episodes = 1000
