@@ -9,7 +9,6 @@ from tf_agents.specs import array_spec
 # from tf_agents.environments import suite_gym
 from tf_agents.trajectories import time_step as ts
 from scipy import signal
-import abc
 
 FRIENDLY = 2
 ENEMY = 3
@@ -144,12 +143,11 @@ class GameEnv(py_environment.PyEnvironment):
     net_action[net_action<0] = -1
     return net_action
 
-  def step(self,action):
-    return self._step(action)
+  # def step(self,action):
+  #   return self._step(action)
 
-  def reset(self):
-    return self._reset()
-
+  # def reset(self):
+  #   return self._reset()
 
   def _step(self,action):
     
@@ -204,22 +202,21 @@ class GameEnv(py_environment.PyEnvironment):
     rewardMatrix = signal.convolve2d(agent_mat, reward_kernal, boundary = 'wrap', mode = 'same')
 
     reward = np.sum(rewardMatrix)
-    done = False
     self.count+=1
     # print("HERE")
     # print(reward)
     if np.min(agent_mat) == 0:
       self.count = self.maxCount
-      done = True
+      self._episode_ended = True
       reward += 10000
       return ts.termination(np.array([self.state_mat],dtype=np.int32),reward, 1)
     elif np.max(agent_mat) == 0:
       self.count = self.maxCount
-      done = True
+      self._episode_ended = True
       reward += -10000
       return ts.termination(np.array([self.state_mat],dtype=np.int32),reward, 1)
     elif self.count >= self.maxCount:
-      done = True
+      self._episode_ended = True
       count2 = self.state_mat.bincount(2)
       count3 = self.state_mat.bincount(3)
       if (count2 > count3):
